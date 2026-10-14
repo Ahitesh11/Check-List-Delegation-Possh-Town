@@ -405,9 +405,9 @@ export default function AdminDashboard() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      const twoDaysLater = new Date();
+      twoDaysLater.setDate(today.getDate() + 2);
+      twoDaysLater.setHours(23, 59, 59, 999);
 
       const processedRows = data.table.rows.map((row, rowIndex) => {
         if (rowIndex === 0) return null;
@@ -453,7 +453,7 @@ export default function AdminDashboard() {
         const taskStartDateObj = parseDateFromDDMMYYYY(taskStartDate);
 
         if (rowIndex <= 5) {
-          console.log(`Row ${rowIndex + 1}: taskStartDateObj=${taskStartDateObj}, today=${today}, tomorrow=${tomorrow}, isValid=${!!taskStartDateObj}`);
+          console.log(`Row ${rowIndex + 1}: taskStartDateObj=${taskStartDateObj}, today=${today}, twoDaysLater=${twoDaysLater}, isValid=${!!taskStartDateObj}`);
         }
 
         if (dashboardType === "delegation") {
@@ -462,8 +462,8 @@ export default function AdminDashboard() {
             return null;
           }
         } else {
-          if (!taskStartDateObj || taskStartDateObj > tomorrow) {
-            if (rowIndex <= 5) console.log(`Row ${rowIndex + 1}: Skipped due to invalid/far future date (beyond tomorrow) in checklist mode`);
+          if (!taskStartDateObj || taskStartDateObj > twoDaysLater) {
+            if (rowIndex <= 5) console.log(`Row ${rowIndex + 1}: Skipped due to invalid/far future date (beyond 2 days) in checklist mode`);
             return null;
           }
         }

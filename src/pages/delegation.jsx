@@ -328,23 +328,37 @@ function DelegationDataPage() {
         // If header row, skip
         if (String(rowValues[1] || "").toLowerCase().includes("task id")) return
 
-        const assignedTo = rowValues[4] || "Unassigned"
-        const isUserMatch = currentUserRole === "admin" || (currentUsername && assignedTo.toLowerCase() === currentUsername.toLowerCase())
+        const assignedTo = String(rowValues[4] || "Unassigned").trim()
+        const trimmedCurUser = String(currentUsername || "").trim().toLowerCase()
+        const isUserMatch = currentUserRole === "admin" || (trimmedCurUser && assignedTo.toLowerCase() === trimmedCurUser)
         if (!isUserMatch && currentUserRole !== "admin") return
 
-        // Check conditions: Column K not null and Column L null
+        // Column G (Task Start Date) and Column K (Planned Date)
+        const columnGValue = rowValues[6]
         const columnKValue = rowValues[10]
         const columnLValue = rowValues[11]
 
-        const hasColumnK = !isEmpty(columnKValue)
+        const hasDate = !isEmpty(columnKValue) || !isEmpty(columnGValue)
         const isColumnLEmpty = isEmpty(columnLValue)
 
-        if (!hasColumnK || !isColumnLEmpty) {
+        if (!hasDate || !isColumnLEmpty) {
           return
         }
 
-        // Skip tasks already marked Done in Column N (Actual can stay blank when the
-        // DELEGATION DONE entry has no timestamp)
+        // Check if task date is within 2 days in advance (or overdue/today)
+        const effectiveDateStr = parseGoogleSheetsDate(String(columnKValue || columnGValue))
+        const effectiveDate = parseDateFromDDMMYYYY(effectiveDateStr)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const maxVisibleDate = new Date(today)
+        maxVisibleDate.setDate(today.getDate() + 2)
+        maxVisibleDate.setHours(23, 59, 59, 999)
+
+        if (effectiveDate && effectiveDate > maxVisibleDate) {
+          return // Skip future tasks beyond 2 days ahead
+        }
+
+        // Skip tasks already marked Done in Column N
         if (String(rowValues[13] || "").trim().toLowerCase() === "done") {
           return
         }
@@ -368,6 +382,11 @@ function DelegationDataPage() {
           } else {
             rowData[`col${i}`] = rowValues[i] || ""
           }
+        }
+
+        // If Planned Date (col10) is empty, fallback to Task Start Date (col6)
+        if (!rowData["col10"] && rowData["col6"]) {
+          rowData["col10"] = rowData["col6"]
         }
 
         pendingAccounts.push(rowData)

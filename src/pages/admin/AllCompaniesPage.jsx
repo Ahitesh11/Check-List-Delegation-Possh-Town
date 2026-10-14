@@ -159,9 +159,13 @@ function CompanyTaskContent({ config }) {
       const curUser = sessionStorage.getItem("username")
       const curRole = sessionStorage.getItem("role")
       const today = new Date()
-      const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1)
-      const todayStr = formatDateToDDMMYYYY(today)
-      const tomorrowStr = formatDateToDDMMYYYY(tomorrow)
+      today.setHours(0, 0, 0, 0)
+      
+      // Tasks should show up to 2 days in advance (today + 2 days)
+      const maxVisibleDate = new Date(today)
+      maxVisibleDate.setDate(today.getDate() + 2)
+      maxVisibleDate.setHours(23, 59, 59, 999)
+
       const membersSet = new Set()
 
       rows.forEach((row, ri) => {
@@ -170,7 +174,7 @@ function CompanyTaskContent({ config }) {
         // Skip header row if present
         if (String(rv[1] || "").toLowerCase().includes("task id")) return
 
-        const assignedTo = rv[4] || "Unassigned"
+        const assignedTo = String(rv[4] || "Unassigned").trim()
         membersSet.add(assignedTo)
         const isMatch = curRole === "admin" || (curUser && assignedTo.toLowerCase() === curUser.toLowerCase())
         if (!isMatch) return
@@ -201,7 +205,8 @@ function CompanyTaskContent({ config }) {
         if (hasG && emptyK) {
           const fmtDate = parseGoogleSheetsDate(String(colG))
           const d = parseDateFromDDMMYYYY(fmtDate)
-          if (fmtDate === todayStr || fmtDate === tomorrowStr || (d && d <= today))
+          // Show tasks overdue, today, and up to 2 days in advance
+          if (d && d <= maxVisibleDate)
             pending.push(rowData)
         } else if (hasG && !emptyK) {
           if (curRole === "admin" || assignedTo.toLowerCase() === curUser?.toLowerCase())
